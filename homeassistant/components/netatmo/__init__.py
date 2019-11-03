@@ -27,7 +27,7 @@ DATA_WEBHOOK_URL = "netatmo_webhook_url"
 
 CONF_SECRET_KEY = "secret_key"
 CONF_WEBHOOKS = "webhooks"
-CONF_WEBHOOKS_ID = "webhook_id"
+CONF_WEBHOOK_HTTP = "webhook_http"
 
 SERVICE_ADDWEBHOOK = "addwebhook"
 SERVICE_DROPWEBHOOK = "dropwebhook"
@@ -38,6 +38,7 @@ NETATMO_WEBHOOK_URL = None
 DEFAULT_PERSON = "Unknown"
 DEFAULT_DISCOVERY = True
 DEFAULT_WEBHOOKS = False
+DEFAULT_WEBHOOK_HTTP = False
 
 EVENT_PERSON = "person"
 EVENT_MOVEMENT = "movement"
@@ -77,7 +78,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_SECRET_KEY): cv.string,
                 vol.Required(CONF_USERNAME): cv.string,
                 vol.Optional(CONF_WEBHOOKS, default=DEFAULT_WEBHOOKS): cv.boolean,
-                vol.Optional(CONF_WEBHOOKS_ID): cv.string,
+                vol.Optional(CONF_WEBHOOK_HTTP, default=DEFAULT_WEBHOOK_HTTP): cv.boolean,
                 vol.Optional(CONF_DISCOVERY, default=DEFAULT_DISCOVERY): cv.boolean,
             }
         )
@@ -116,12 +117,13 @@ def setup(hass, config):
             discovery.load_platform(hass, component, DOMAIN, {}, config)
 
     if config[DOMAIN][CONF_WEBHOOKS]:
-        webhook_id = config[DOMAIN][CONF_WEBHOOKS_ID]
-        if not webhook_id:
-            webhook_id = hass.components.webhook.async_generate_id()
-        hass.data[DATA_WEBHOOK_URL] = hass.components.webhook.async_generate_url(
+        webhook_id = hass.components.webhook.async_generate_id()
+        webhook_url = hass.components.webhook.async_generate_url(
             webhook_id
         )
+        if config[DOMAIN][CONF_WEBHOOK_HTTP]:
+            webhook_url = webhook_url.replace("https", "http")
+        hass.data[DATA_WEBHOOK_URL] = webhook_url
         _LOGGER.info(f"netatmo webhook url {hass.data[DATA_WEBHOOK_URL]}")
         hass.components.webhook.async_register(
             DOMAIN, "Netatmo", webhook_id, handle_webhook
